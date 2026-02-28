@@ -1,0 +1,30 @@
+{
+  "weather": {
+    "api_base_url": "https://api.open-meteo.com/v1/forecast",
+    "api_key": null,
+    "latitude": 40.7128,
+    "longitude": -74.0060,
+    "location_display": "New York, NY, US",
+    "refresh_minutes": 15
+  },
+  "display": {
+    "width": 1920,
+    "height": 480,
+    "fullscreen": false,
+    "time_format_24": false
+  },
+  "dimming": {
+    "brightness_day": 100,
+    "brightness_night": 25,
+    "dim_start": "22:00",
+    "dim_end": "07:00"
+  },
+  "blackout": {
+    "enabled": true,
+    "start": "23:00",
+    "end": "06:00"
+  },
+  "backlight": {
+    "gpio": null
+  }
+}
