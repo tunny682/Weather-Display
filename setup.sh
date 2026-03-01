@@ -47,6 +47,7 @@ if command -v apt-get &>/dev/null; then
     sudo apt-get update -qq
     sudo apt-get install -y -qq python3 python3-pip python3-venv python3-tk git
     sudo apt-get install -y -qq libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 || true
+    sudo apt-get install -y -qq x11-xserver-utils || true
 fi
 
 # Create virtualenv and install Python dependencies
@@ -63,11 +64,13 @@ echo ""
 echo "--- Set your location and preferences ---"
 .venv/bin/python src/main.py --setup-only
 
-# Launcher script: ensures DISPLAY is set and runs the app (used by autostart and systemd)
+# Launcher script: sets DISPLAY, forces landscape rotation (xrandr), then runs the app
 LAUNCHER="${INSTALL_DIR}/start-weather-display.sh"
 cat > "${LAUNCHER}" << EOF
 #!/bin/sh
 export DISPLAY=:0
+# Force landscape at X11 level (in case boot config rotation did not apply)
+xrandr -o normal 2>/dev/null || true
 cd "${INSTALL_DIR}"
 exec .venv/bin/python src/main.py
 EOF
@@ -157,9 +160,9 @@ else
     echo "To boot without a login screen, enable autologin: sudo raspi-config → System Options → Boot / Auto Login → Desktop Autologin"
 fi
 
-# Force fullscreen and 1920x480 in config for LCD
+# Set 1920x480 in config; do not force fullscreen (user can set true in config.json if desired)
 if [ -f "${INSTALL_DIR}/config.json" ]; then
-    sed -i 's/"fullscreen"\s*:\s*false/"fullscreen": true/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
+    sed -i 's/"fullscreen"\s*:\s*true/"fullscreen": false/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
     sed -i 's/"width"\s*:\s*[0-9]*/"width": 1920/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
     sed -i 's/"height"\s*:\s*[0-9]*/"height": 480/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
 fi

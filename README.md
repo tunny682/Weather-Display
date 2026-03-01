@@ -98,7 +98,8 @@ After reboot the display should start automatically.
 - Sets **display resolution to 1920×480** and **landscape orientation** (`display_rotate=0`) in the Pi’s boot config so the 8.8" LCD shows correctly. The app uses 1920×480 from `config.json`.
 - Enables **desktop autologin** (when using LightDM) so the Pi boots straight to the desktop with **no login screen and no keyboard required**.
 - Adds **XDG autostart** so the weather app starts as soon as the desktop is ready.
-- Sets **fullscreen** in config for the LCD; the app takes over the display.
+- App launches in a **window** by default; set `"fullscreen": true` in `config.json` if you want it to take over the LCD.
+- Launcher runs **xrandr -o normal** before starting the app to force landscape at the X11 level if the boot config rotation did not apply.
 
 After reboot: power on with the LCD connected and the app starts automatically—no keyboard or interaction needed.
 

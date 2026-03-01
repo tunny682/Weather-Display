@@ -11,7 +11,7 @@
   "display": {
     "width": 1920,
     "height": 480,
-    "fullscreen": true,
+    "fullscreen": false,
     "time_format_24": false
   },
   "dimming": {
