@@ -173,10 +173,10 @@ def main():
         if use_software_rotate and buffer is not None:
             draw_display(buffer, config, weather_data, datetime.datetime.now())
             rotated = pygame.transform.rotate(buffer, rotate_degrees)
-            # Center the rotated buffer on the screen in case of size mismatch
+            # Center the rotated buffer; clamp so we never blit with negative x/y
             rw, rh = rotated.get_size()
-            x = (actual_w - rw) // 2
-            y = (actual_h - rh) // 2
+            x = max(0, (actual_w - rw) // 2)
+            y = max(0, (actual_h - rh) // 2)
             screen.fill((0, 0, 0))
             screen.blit(rotated, (x, y))
         else:

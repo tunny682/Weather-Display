@@ -48,6 +48,7 @@ if command -v apt-get &>/dev/null; then
     sudo apt-get install -y -qq python3 python3-pip python3-venv python3-tk git
     sudo apt-get install -y -qq libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 || true
     sudo apt-get install -y -qq x11-xserver-utils || true
+    sudo apt-get install -y -qq wlr-randr 2>/dev/null || true
 fi
 
 # Create virtualenv and install Python dependencies
@@ -64,13 +65,38 @@ echo ""
 echo "--- Set your location and preferences ---"
 .venv/bin/python src/main.py --setup-only
 
-# Launcher script: sets DISPLAY, forces landscape rotation (xrandr), then runs the app
+# Rotation script (runs at session start and before app): retries until X/Wayland is ready, then rotates to landscape
+[ -f "${INSTALL_DIR}/rotate_display.sh" ] && chmod +x "${INSTALL_DIR}/rotate_display.sh"
+if [ -f "${INSTALL_DIR}/rotate_display.sh" ]; then
+  echo "Installing rotate-display service (runs at login, retries until display is ready)..."
+  mkdir -p "${HOME}/.config/systemd/user"
+  cat > "${HOME}/.config/systemd/user/rotate-display.service" << ROTEOF
+[Unit]
+Description=Rotate display to landscape for 8.8" LCD
+After=graphical-session.target graphical.target
+
+[Service]
+Type=oneshot
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=%h/.Xauthority
+ExecStart=${INSTALL_DIR}/rotate_display.sh
+TimeoutSec=120
+
+[Install]
+WantedBy=default.target
+ROTEOF
+  systemctl --user daemon-reload 2>/dev/null || true
+  systemctl --user enable rotate-display.service 2>/dev/null || true
+fi
+
+# Launcher: run rotation script then start the app (rotation retries inside the script when run by service; here we try once)
 LAUNCHER="${INSTALL_DIR}/start-weather-display.sh"
 cat > "${LAUNCHER}" << EOF
 #!/bin/sh
 export DISPLAY=:0
-# Force landscape at X11 level (in case boot config rotation did not apply)
-xrandr -o normal 2>/dev/null || true
+export XAUTHORITY="\${XAUTHORITY:-\$HOME/.Xauthority}"
+# Rotate to landscape in background if script exists (retries until X/Wayland ready; service also runs at login)
+[ -x "${INSTALL_DIR}/rotate_display.sh" ] && "${INSTALL_DIR}/rotate_display.sh" >/dev/null 2>&1 &
 cd "${INSTALL_DIR}"
 exec .venv/bin/python src/main.py
 EOF
