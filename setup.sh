@@ -170,14 +170,22 @@ BOOT_CONF=""
 [ -z "${BOOT_CONF}" ] && [ -f /boot/config.txt ] && BOOT_CONF="/boot/config.txt"
 if [ -n "${BOOT_CONF}" ]; then
     if ! sudo grep -q "hdmi_cvt=1920 480" "${BOOT_CONF}" 2>/dev/null; then
-        echo "Setting display resolution to 1920x480 for LCD..."
-        { echo ""; echo "# Weather Display 8.8\" LCD (1920x480)"; echo "hdmi_cvt=1920 480 60 6 0 0 0"; echo "hdmi_group=2"; echo "hdmi_mode=87"; } | sudo tee -a "${BOOT_CONF}" >/dev/null
+        echo "Setting display resolution to 1920x480 (landscape) for LCD..."
+        { echo ""; echo "# Weather Display 8.8\" LCD (1920x480 landscape)"; echo "hdmi_cvt=1920 480 60 6 0 0 0"; echo "hdmi_group=2"; echo "hdmi_mode=87"; echo "display_rotate=0"; } | sudo tee -a "${BOOT_CONF}" >/dev/null
+    fi
+    # Force landscape (0=0°, 2=180°). Remove or change if already set to portrait.
+    if ! sudo grep -q "^display_rotate=" "${BOOT_CONF}" 2>/dev/null; then
+        echo "Setting display_rotate=0 (landscape)..."
+        { echo ""; echo "# Landscape orientation for 8.8\" LCD"; echo "display_rotate=0"; } | sudo tee -a "${BOOT_CONF}" >/dev/null
+    else
+        sudo sed -i 's/^display_rotate=.*/display_rotate=0/' "${BOOT_CONF}" 2>/dev/null || true
     fi
 else
-    echo "To use the LCD at 1920x480, add to /boot/firmware/config.txt (or /boot/config.txt):"
+    echo "To use the LCD at 1920x480 landscape, add to /boot/firmware/config.txt (or /boot/config.txt):"
     echo "  hdmi_cvt=1920 480 60 6 0 0 0"
     echo "  hdmi_group=2"
     echo "  hdmi_mode=87"
+    echo "  display_rotate=0"
 fi
 
 # Trixie / labwc: also add to labwc autostart if present
