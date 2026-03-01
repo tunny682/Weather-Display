@@ -35,6 +35,7 @@ Copy `config.json.example` to `config.json` and edit as needed:
 |-----------|-------------------|--------------------------------------------------|
 | `weather` | `latitude`, `longitude` | Your location for weather data              |
 | `weather` | `refresh_minutes` | How often to refresh the API (default 15)        |
+| `weather` | `temperature_unit` | `"fahrenheit"` (imperial) or `"celsius"` (metric) |
 | `display` | `time_format_24`  | `true` for 24-hour, `false` for 12-hour (AM/PM) |
 | `dimming` | `dim_start`, `dim_end` | Time window for reduced brightness        |
 | `blackout`| `start`, `end`    | Time window for screen off (full black)          |

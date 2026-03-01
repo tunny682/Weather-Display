@@ -69,12 +69,14 @@ def fetch_weather(config: dict) -> Optional[dict[str, Any]]:
 def _fetch_open_meteo(base: str, lat: float, lon: float, cfg: dict) -> Optional[dict[str, Any]]:
     # timezone required when using daily; "time" is returned automatically with daily
     tz = cfg.get("timezone", "auto")
+    temp_unit = cfg.get("temperature_unit", "fahrenheit")  # "fahrenheit" = imperial, "celsius" = metric
     url = (
         f"{base}"
         f"?latitude={lat}&longitude={lon}"
         "&current=temperature_2m,weather_code"
         "&daily=weather_code,temperature_2m_max,temperature_2m_min"
         f"&timezone={tz}"
+        f"&temperature_unit={temp_unit}"
         "&forecast_days=7"
     )
     try:

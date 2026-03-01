@@ -5,7 +5,8 @@
     "latitude": 40.7128,
     "longitude": -74.0060,
     "location_display": "New York, NY, US",
-    "refresh_minutes": 15
+    "refresh_minutes": 15,
+    "temperature_unit": "fahrenheit"
   },
   "display": {
     "width": 1920,
