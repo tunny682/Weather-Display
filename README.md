@@ -104,7 +104,12 @@ After reboot: power on with the LCD connected and the app starts automatically�
 
 **If the app doesn’t autostart:** ensure autologin is enabled (e.g. **Raspberry Pi Configuration** → **System** → **Auto Login** → “Desktop auto login as user ‘pi’”), then reboot.
 
-**If the display is portrait instead of landscape:** the setup script sets `display_rotate=0` in the boot config. If it’s still wrong, edit `/boot/firmware/config.txt` (or `/boot/config.txt`): use `display_rotate=0` for landscape, `display_rotate=2` for landscape upside-down, then reboot.
+**If the display is portrait instead of landscape:** run the rotation fix on the Pi, then reboot:
+  ```bash
+  cd ~/weather-display && sudo bash fix-rotation.sh
+  sudo reboot
+  ```
+  Or edit `/boot/firmware/config.txt` (or `/boot/config.txt`) and set `display_rotate=0` (landscape) or `display_rotate=2` (landscape upside-down). Ensure no other `display_rotate` or `lcd_rotate` line overrides it, then reboot.
 
 To run the display manually: `cd ~/weather-display && .venv/bin/python src/main.py`.
 

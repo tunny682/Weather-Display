@@ -173,12 +173,15 @@ if [ -n "${BOOT_CONF}" ]; then
         echo "Setting display resolution to 1920x480 (landscape) for LCD..."
         { echo ""; echo "# Weather Display 8.8\" LCD (1920x480 landscape)"; echo "hdmi_cvt=1920 480 60 6 0 0 0"; echo "hdmi_group=2"; echo "hdmi_mode=87"; echo "display_rotate=0"; } | sudo tee -a "${BOOT_CONF}" >/dev/null
     fi
-    # Force landscape (0=0°, 2=180°). Remove or change if already set to portrait.
-    if ! sudo grep -q "^display_rotate=" "${BOOT_CONF}" 2>/dev/null; then
-        echo "Setting display_rotate=0 (landscape)..."
-        { echo ""; echo "# Landscape orientation for 8.8\" LCD"; echo "display_rotate=0"; } | sudo tee -a "${BOOT_CONF}" >/dev/null
-    else
-        sudo sed -i 's/^display_rotate=.*/display_rotate=0/' "${BOOT_CONF}" 2>/dev/null || true
+    # Force landscape: replace any existing rotation (0=0°, 2=180°). Also set lcd_rotate for DSI panels.
+    echo "Forcing landscape (display_rotate=0, lcd_rotate=0)..."
+    sudo sed -i 's/^\(#\s*\)*display_rotate=.*/display_rotate=0/' "${BOOT_CONF}" 2>/dev/null || true
+    sudo sed -i 's/^\(#\s*\)*lcd_rotate=.*/lcd_rotate=0/' "${BOOT_CONF}" 2>/dev/null || true
+    if ! sudo grep -q "^display_rotate=0" "${BOOT_CONF}" 2>/dev/null; then
+        { echo ""; echo "# Landscape for 8.8\" LCD"; echo "display_rotate=0"; } | sudo tee -a "${BOOT_CONF}" >/dev/null
+    fi
+    if ! sudo grep -q "^lcd_rotate=0" "${BOOT_CONF}" 2>/dev/null; then
+        echo "lcd_rotate=0" | sudo tee -a "${BOOT_CONF}" >/dev/null
     fi
 else
     echo "To use the LCD at 1920x480 landscape, add to /boot/firmware/config.txt (or /boot/config.txt):"
