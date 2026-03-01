@@ -37,6 +37,7 @@ Copy `config.json.example` to `config.json` and edit as needed:
 | `weather` | `refresh_minutes` | How often to refresh the API (default 15)        |
 | `weather` | `temperature_unit` | `"fahrenheit"` (imperial) or `"celsius"` (metric) |
 | `display` | `time_format_24`  | `true` for 24-hour, `false` for 12-hour (AM/PM) |
+| `display` | `software_rotate` | When display is portrait, rotate buffer: `-90` or `90` to fix orientation |
 | `dimming` | `dim_start`, `dim_end` | Time window for reduced brightness        |
 | `blackout`| `start`, `end`    | Time window for screen off (full black)          |
 | `backlight` | `gpio`          | GPIO pin number for backlight PWM, or `null`     |

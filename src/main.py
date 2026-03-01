@@ -137,6 +137,17 @@ def main():
 
     pygame.display.set_caption("Weather Display")
 
+    # If the display is portrait (e.g. OS gave 480x1920), draw to a landscape buffer and rotate for correct orientation
+    actual_w, actual_h = screen.get_width(), screen.get_height()
+    use_software_rotate = actual_w < actual_h
+    if use_software_rotate:
+        buffer = pygame.Surface((width, height))
+        # Rotation angle to show our 1920x480 layout correctly on portrait display: -90 = CCW
+        rotate_degrees = int(display_cfg.get("software_rotate", -90))
+    else:
+        buffer = None
+        rotate_degrees = 0
+
     clock = pygame.time.Clock()
     running = True
 
@@ -159,7 +170,17 @@ def main():
             weather_data = fetch_weather(config)
             last_weather_time = now_ts
 
-        draw_display(screen, config, weather_data, datetime.datetime.now())
+        if use_software_rotate and buffer is not None:
+            draw_display(buffer, config, weather_data, datetime.datetime.now())
+            rotated = pygame.transform.rotate(buffer, rotate_degrees)
+            # Center the rotated buffer on the screen in case of size mismatch
+            rw, rh = rotated.get_size()
+            x = (actual_w - rw) // 2
+            y = (actual_h - rh) // 2
+            screen.fill((0, 0, 0))
+            screen.blit(rotated, (x, y))
+        else:
+            draw_display(screen, config, weather_data, datetime.datetime.now())
         pygame.display.flip()
         clock.tick(30)
 

@@ -12,7 +12,8 @@
     "width": 1920,
     "height": 480,
     "fullscreen": false,
-    "time_format_24": false
+    "time_format_24": false,
+    "software_rotate": -90
   },
   "dimming": {
     "brightness_day": 100,
