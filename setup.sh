@@ -62,7 +62,7 @@ echo ""
 echo "--- Set your location and preferences ---"
 .venv/bin/python src/main.py --setup-only
 
-# Systemd user service for auto-start after login (display available)
+# Auto-start: systemd (Bookworm/X11) and/or labwc autostart (Trixie/Wayland)
 SERVICE_DIR="${HOME}/.config/systemd/user"
 mkdir -p "${SERVICE_DIR}"
 cat > "${SERVICE_DIR}/weather-display.service" << EOF
@@ -82,14 +82,30 @@ RestartSec=10
 WantedBy=default.target
 EOF
 
-echo "Enabling auto-start (systemd user service)..."
+echo "Enabling auto-start (systemd user service for Bookworm/X11)..."
 systemctl --user daemon-reload
-systemctl --user enable weather-display.service || true
+systemctl --user enable weather-display.service 2>/dev/null || true
+
+# Trixie (Debian 13) / Raspberry Pi OS with Wayland uses labwc; add autostart so app runs in session
+LABWC_AUTOSTART="${HOME}/.config/labwc/autostart"
+if command -v labwc &>/dev/null || [ -d "${HOME}/.config/labwc" ]; then
+    echo "Configuring labwc autostart (Trixie/Wayland)..."
+    mkdir -p "${LABWC_AUTOSTART}"
+    cat > "${LABWC_AUTOSTART}/weather-display.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=Weather Display
+Exec=${INSTALL_DIR}/.venv/bin/python ${INSTALL_DIR}/src/main.py
+Path=${INSTALL_DIR}
+X-GNOME-Autostart-enabled=true
+EOF
+    chmod +x "${LABWC_AUTOSTART}/weather-display.desktop" 2>/dev/null || true
+fi
 
 echo ""
 echo "=== Installation complete ==="
 echo "  Install directory: ${INSTALL_DIR}"
 echo "  Run manually:  cd ${INSTALL_DIR} && .venv/bin/python src/main.py"
-echo "  Start service: systemctl --user start weather-display"
+echo "  (Bookworm) Start service: systemctl --user start weather-display"
 echo "  Reboot to start the display automatically:  sudo reboot"
 echo ""

@@ -57,7 +57,7 @@ No API key is needed for Open-Meteo.
 
 ## Raspberry Pi installation
 
-On a Pi (e.g. Raspberry Pi 5) with the 8.8" LCD connected:
+Works on **Raspberry Pi OS Bookworm** (Debian 12, X11) and **Trixie** (Debian 13, Wayland/labwc). On a Pi (e.g. Raspberry Pi 5) with the 8.8" LCD connected:
 
 **Download the install script**
 
@@ -85,7 +85,8 @@ After reboot the display should start automatically.
 - Clones the repository to `~/weather-display` (or uses the current directory if you already cloned it).
 - Creates a Python virtualenv and installs packages from `requirements.txt`.
 - Runs interactive setup (location and time format) and writes `config.json`.
-- Configures a **systemd user service** so the display auto-starts after you log in (graphical session).
+- **Bookworm (X11):** configures a **systemd user service** so the display auto-starts after you log in.
+- **Trixie (Wayland/labwc):** if labwc is present, adds a **labwc autostart** entry so the display starts with your session.
 
 To run the display manually: `cd ~/weather-display && .venv/bin/python src/main.py`. Set `display.fullscreen` to `true` in `config.json` for kiosk use.
 
