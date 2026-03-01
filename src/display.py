@@ -3,9 +3,15 @@ Renders the weather display layout: time/date left, current weather + 5-day fore
 Layout matches the 8.8" LCD design (1920x480).
 """
 import datetime
+import os
 from typing import Any, Optional
 
 import pygame
+
+# Project root (parent of src/) for resolving assets
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ICONS_DIR = os.path.join(_PROJECT_ROOT, "assets", "icons")
+_icon_cache: dict[str, pygame.Surface] = {}
 
 
 # Condition name -> simple icon type for drawing
@@ -25,8 +31,46 @@ def _icon_type(condition: str) -> str:
     return "cloud"
 
 
+# Optional alternate filenames (e.g. sunny.png for sun)
+_ICON_ALIASES: dict[str, list[str]] = {"sun": ["sun", "sunny"]}
+
+
+def _load_icon(icon_type: str) -> Optional[pygame.Surface]:
+    """Load icon PNG from assets/icons. Tries {icon_type}.png and any aliases (e.g. sunny.png for sun)."""
+    if icon_type in _icon_cache:
+        return _icon_cache[icon_type]
+    names = [f"{icon_type}.png"] + [
+        f"{alt}.png" for alt in _ICON_ALIASES.get(icon_type, []) if alt != icon_type
+    ]
+    for name in names:
+        path = os.path.join(_ICONS_DIR, name)
+        if os.path.isfile(path):
+            try:
+                img = pygame.image.load(path)
+                if img.get_alpha() is None:
+                    img.set_colorkey((0, 0, 0))
+                _icon_cache[icon_type] = img
+                return img
+            except (pygame.error, OSError):
+                pass
+    _icon_cache[icon_type] = None
+    return None
+
+
 def _draw_icon(surface: pygame.Surface, x: int, y: int, icon_type: str, size: int, color: tuple) -> None:
-    """Draw a simple icon at (x,y) center. size is approximate radius/scale."""
+    """Draw icon at (x,y) center. Uses assets/icons/{icon_type}.png if present, else draws a shape."""
+    img = _load_icon(icon_type)
+    if img is not None:
+        # Scale so the icon fits in a 2*size box and center at (x, y)
+        iw, ih = img.get_width(), img.get_height()
+        max_side = max(iw, ih, 1)
+        scale = (2 * size) / max_side
+        w, h = int(iw * scale), int(ih * scale)
+        scaled = pygame.transform.smoothscale(img, (w, h))
+        rect = scaled.get_rect(center=(x, y))
+        surface.blit(scaled, rect)
+        return
+    # Fallback: draw simple shapes
     if icon_type == "sun":
         pygame.draw.circle(surface, (255, 220, 0), (x, y), size)
     elif icon_type == "cloud":
@@ -41,7 +85,6 @@ def _draw_icon(surface: pygame.Surface, x: int, y: int, icon_type: str, size: in
         for i in range(-1, 2):
             pygame.draw.line(surface, color, (x + i * 4, y + size // 2), (x + i * 4, y + size), 2)
     else:
-        # default cloud
         _draw_icon(surface, x, y, "cloud", size, color)
 
 
