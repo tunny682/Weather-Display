@@ -65,14 +65,16 @@ echo ""
 echo "--- Set your location and preferences ---"
 .venv/bin/python src/main.py --setup-only
 
-# Rotation script (runs at session start and before app): retries until X/Wayland is ready, then rotates to landscape
+# Rotation: no user input on the unit — script rotates desktop automatically (default: right, for 8.8" LCD)
 [ -f "${INSTALL_DIR}/rotate_display.sh" ] && chmod +x "${INSTALL_DIR}/rotate_display.sh"
 if [ -f "${INSTALL_DIR}/rotate_display.sh" ]; then
+  # Default rotate.conf so rotation works without any input (display has no keyboard)
+  [ ! -f "${INSTALL_DIR}/rotate.conf" ] && echo "ROTATE=right" > "${INSTALL_DIR}/rotate.conf"
   echo "Installing rotate-display service (runs at login, retries until display is ready)..."
   mkdir -p "${HOME}/.config/systemd/user"
   cat > "${HOME}/.config/systemd/user/rotate-display.service" << ROTEOF
 [Unit]
-Description=Rotate display to landscape for 8.8" LCD
+Description=Rotate display for 8.8" LCD (no user input; uses rotate.conf or default right)
 After=graphical-session.target graphical.target
 
 [Service]

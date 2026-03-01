@@ -1,0 +1,4 @@
+# Rotation for 8.8" LCD (no input on display — script handles it).
+# Setup creates rotate.conf with ROTATE=right by default. Copy to rotate.conf only to override.
+# Options: normal, right, left, inverted
+ROTATE=right

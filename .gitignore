@@ -1,5 +1,6 @@
 # Local config (each machine has its own)
 config.json
+rotate.conf
 
 # Python
 __pycache__/

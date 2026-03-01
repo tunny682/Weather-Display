@@ -100,18 +100,13 @@ After reboot the display should start automatically.
 - Enables **desktop autologin** (when using LightDM) so the Pi boots straight to the desktop with **no login screen and no keyboard required**.
 - Adds **XDG autostart** so the weather app starts as soon as the desktop is ready.
 - App launches in a **window** by default; set `"fullscreen": true` in `config.json` if you want it to take over the LCD.
-- **rotate_display.sh** rotates the **entire desktop** (all connected outputs) to landscape so the Pi desktop and the app both appear correct. It retries for up to 60s until X11 or Wayland is ready, then runs `xrandr --output <each> --rotate normal` (X11) or `wlr-randr --transform normal` (Wayland). A systemd user service runs it at session start; the launcher also runs it when the app starts. The boot config (`display_rotate=0`) is set by setup for the framebuffer; this script rotates the desktop session on top of that.
+- **rotate_display.sh** rotates the **entire desktop** (all connected outputs). **No user input on the display** — the script defaults to `ROTATE=right` (same as the working Canterrain example); setup creates `rotate.conf` with that so the unit works without a keyboard. It retries for up to 60s until X11 or Wayland is ready, then runs `xrandr --output <each> --rotate right` (or the value in `rotate.conf`). A systemd user service runs it at session start; the launcher also runs it when the app starts.
 
 After reboot: power on with the LCD connected and the app starts automatically—no keyboard or interaction needed.
 
 **If the app doesn’t autostart:** ensure autologin is enabled (e.g. **Raspberry Pi Configuration** → **System** → **Auto Login** → “Desktop auto login as user ‘pi’”), then reboot.
 
-**If the display is portrait instead of landscape:** run the rotation fix on the Pi, then reboot:
-  ```bash
-  cd ~/weather-display && sudo bash fix-rotation.sh
-  sudo reboot
-  ```
-  Or edit `/boot/firmware/config.txt` (or `/boot/config.txt`) and set `display_rotate=0` (landscape) or `display_rotate=2` (landscape upside-down). Ensure no other `display_rotate` or `lcd_rotate` line overrides it, then reboot.
+**If the display is still not rotating:** see **[ROTATION.md](ROTATION.md)**. Quick checks: (1) Try `ROTATE=right` or `ROTATE=left` when running `rotate_display.sh` (the working Canterrain example uses `right`). If one works, add `echo "ROTATE=right" > ~/weather-display/rotate.conf` and reboot. (2) If xrandr doesn’t list your LCD, set rotation in `/boot/firmware/config.txt` with `display_rotate=0` (or 1, 2, 3) and reboot.
 
 To run the display manually: `cd ~/weather-display && .venv/bin/python src/main.py`.
 

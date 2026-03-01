@@ -1,30 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Rotate the desktop (all connected displays) to landscape for 8.8" LCD.
-# Supports:
-#   - Wayland: wlr-randr (transform normal)
-#   - X11:     xrandr --rotate normal on every connected output
+# Rotate the desktop (all connected displays) for 8.8" LCD.
+# No user input: default is "right" (matches Canterrain working example and many 8.8" panels).
+# Override by creating rotate.conf next to this script with ROTATE=normal|right|left|inverted
 #
-# Boot can be racy: X/Wayland may not be ready when systemd runs this,
-# so we retry for a while. We rotate ALL connected outputs so the whole
-# desktop is in landscape.
+# X11: xrandr --rotate <ROTATE>
+# Wayland: wlr-randr --transform (normal|90|270|180)
+#
+# Boot can be racy: we retry for a while and rotate ALL connected outputs.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-.}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/rotate.conf" ]]; then
+  # shellcheck source=/dev/null
+  . "$SCRIPT_DIR/rotate.conf"
+fi
+# Default right so display works without any input (no keyboard on the unit)
+ROTATE="${ROTATE:-right}"
 MAX_WAIT_SECONDS=60
 export DISPLAY="${DISPLAY:-:0}"
 export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
 
-# Give the desktop a moment to be ready before first attempt
+# Map ROTATE to wlr-randr transform (Wayland)
+case "$ROTATE" in
+  normal)   WLR_TRANSFORM="normal" ;;
+  right)    WLR_TRANSFORM="90" ;;
+  left)     WLR_TRANSFORM="270" ;;
+  inverted) WLR_TRANSFORM="180" ;;
+  *)        WLR_TRANSFORM="normal" ;;
+esac
+
+# Give the desktop a moment to be ready
 sleep 3
 
 try_wayland() {
   command -v wlr-randr >/dev/null 2>&1 || return 1
 
-  # Get all enabled outputs and rotate each to landscape
   local ok=0
   while IFS= read -r out; do
     [[ -z "$out" ]] && continue
-    if wlr-randr --output "$out" --transform normal 2>/dev/null || \
+    if wlr-randr --output "$out" --transform "$WLR_TRANSFORM" 2>/dev/null || \
        wlr-randr --output "$out" --transform 0 2>/dev/null; then
       ok=1
     fi
@@ -40,11 +55,10 @@ try_x11() {
 
   xrandr >/dev/null 2>&1 || return 1
 
-  # Rotate every connected output so the whole desktop is landscape
   local ok=0
   while IFS= read -r out; do
     [[ -z "$out" ]] && continue
-    if xrandr --output "$out" --rotate normal 2>/dev/null; then
+    if xrandr --output "$out" --rotate "$ROTATE" 2>/dev/null; then
       ok=1
     fi
   done < <(xrandr 2>/dev/null | awk '/ connected/ {print $1}' || true)
@@ -61,5 +75,6 @@ for ((i=1; i<=MAX_WAIT_SECONDS; i++)); do
   sleep 1
 done
 
-echo "Could not rotate desktop to landscape after ${MAX_WAIT_SECONDS}s."
+echo "Could not rotate desktop (ROTATE=$ROTATE) after ${MAX_WAIT_SECONDS}s."
+echo "Try manually: ROTATE=right $0   or   ROTATE=left $0"
 exit 1
