@@ -91,19 +91,28 @@ ROTEOF
   systemctl --user enable rotate-display.service 2>/dev/null || true
 fi
 
-# Launcher: run rotation script then start the app (rotation retries inside the script when run by service; here we try once)
+# Launcher: hide taskbar, rotate display, then start the app (no taskbar visible; use fullscreen in config)
 LAUNCHER="${INSTALL_DIR}/start-weather-display.sh"
 cat > "${LAUNCHER}" << EOF
 #!/bin/sh
 export DISPLAY=:0
 export XAUTHORITY="\${XAUTHORITY:-\$HOME/.Xauthority}"
-# Rotate to landscape in background if script exists (retries until X/Wayland ready; service also runs at login)
+# Hide Pi taskbar so only the weather app is visible (display has no input)
+killall lxpanel 2>/dev/null || true
+# Rotate to landscape in background if script exists
 [ -x "${INSTALL_DIR}/rotate_display.sh" ] && "${INSTALL_DIR}/rotate_display.sh" >/dev/null 2>&1 &
 cd "${INSTALL_DIR}"
 exec .venv/bin/python src/main.py
 EOF
 chmod +x "${LAUNCHER}"
 echo "Created launcher: ${LAUNCHER}"
+
+# Disable LXDE panel from autostart so taskbar never appears after reboot
+if [ -d "${HOME}/.config/lxsession" ] || mkdir -p "${HOME}/.config/lxsession/LXDE-pi" 2>/dev/null; then
+  if [ -f /etc/xdg/lxsession/LXDE-pi/autostart ]; then
+    grep -v '@lxpanel' /etc/xdg/lxsession/LXDE-pi/autostart > "${HOME}/.config/lxsession/LXDE-pi/autostart" 2>/dev/null && echo "Disabled LXDE panel in autostart (no taskbar)." || true
+  fi
+fi
 
 # System-level systemd service: starts app when display is ready (does not depend on desktop autostart)
 SYSTEMD_SERVICE="/etc/systemd/system/weather-display.service"

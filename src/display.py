@@ -170,7 +170,10 @@ def draw(surface: pygame.Surface, config: dict, weather_data: Optional[dict], no
     h = surface.get_height()
     surface.fill((0, 0, 0))
 
-    time_24 = config.get("display", {}).get("time_format_24", False)
+    disp = config.get("display", {})
+    time_24 = disp.get("time_format_24", False)
+    # Offset everything down so content clears the system taskbar (e.g. Pi top bar)
+    top_offset = max(0, int(disp.get("top_offset", 0)))
     left_third = w // 3
     right_start = left_third
     white = _WHITE
@@ -190,8 +193,8 @@ def draw(surface: pygame.Surface, config: dict, weather_data: Optional[dict], no
         time_str = now.strftime("%I:%M%p")
         colon_pos = time_str.index(":") if ":" in time_str else -1
 
-    # ---- Left: Time and date — vertically centered in left third to fill space ----
-    y_time = h // 2 - 80
+    # ---- Left: Time and date — vertically centered in left third, below top_offset ----
+    y_time = top_offset + (h - top_offset) // 2 - 80
     if colon_pos >= 0:
         part1 = time_str[:colon_pos]
         part2 = time_str[colon_pos + 1:]
@@ -216,8 +219,9 @@ def draw(surface: pygame.Surface, config: dict, weather_data: Optional[dict], no
     # ---- Right: 5-day forecast column layout (same col_w for alignment); current weather above, aligned with first column ----
     current = (weather_data or {}).get("current")
     forecast = (weather_data or {}).get("forecast") or []
-    strip_y = h - 200
+    # Push strip down by top_offset so day labels clear the system taskbar; cap so strip stays on screen
     strip_h = 180
+    strip_y = min(h - 200 + top_offset, h - strip_h - 5)
     col_w = (w - right_start - 40) // 5
     # Center of first column (Mon) — current weather icon lines up with this
     first_col_center = right_start + 20 + col_w // 2

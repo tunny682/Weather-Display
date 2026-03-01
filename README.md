@@ -38,6 +38,7 @@ Copy `config.json.example` to `config.json` and edit as needed:
 | `weather` | `temperature_unit` | `"fahrenheit"` (imperial) or `"celsius"` (metric) |
 | `display` | `time_format_24`  | `true` for 24-hour, `false` for 12-hour (AM/PM) |
 | `display` | `software_rotate` | When display is portrait, rotate buffer: `-90` or `90` to fix orientation |
+| `display` | `top_offset` | If the taskbar is visible, shift layout down (e.g. 28); 0 when taskbar is hidden (default) |
 | `dimming` | `dim_start`, `dim_end` | Time window for reduced brightness        |
 | `blackout`| `start`, `end`    | Time window for screen off (full black)          |
 | `backlight` | `gpio`          | GPIO pin number for backlight PWM, or `null`     |
@@ -99,7 +100,7 @@ After reboot the display should start automatically.
 - Sets **display resolution to 1920×480** and **landscape orientation** (`display_rotate=0`) in the Pi’s boot config so the 8.8" LCD shows correctly. The app uses 1920×480 from `config.json`.
 - Enables **desktop autologin** (when using LightDM) so the Pi boots straight to the desktop with **no login screen and no keyboard required**.
 - Adds **XDG autostart** so the weather app starts as soon as the desktop is ready.
-- App launches in a **window** by default; set `"fullscreen": true` in `config.json` if you want it to take over the LCD.
+- **No Pi taskbar:** the launcher hides the LXDE panel and setup disables it from autostart so only the weather app is visible. The app runs **fullscreen** by default (`config.json`).
 - **rotate_display.sh** rotates the **entire desktop** (all connected outputs). **No user input on the display** — the script defaults to `ROTATE=right` (same as the working Canterrain example); setup creates `rotate.conf` with that so the unit works without a keyboard. It retries for up to 60s until X11 or Wayland is ready, then runs `xrandr --output <each> --rotate right` (or the value in `rotate.conf`). A systemd user service runs it at session start; the launcher also runs it when the app starts.
 
 After reboot: power on with the LCD connected and the app starts automatically—no keyboard or interaction needed.

@@ -11,9 +11,10 @@
   "display": {
     "width": 1920,
     "height": 480,
-    "fullscreen": false,
+    "fullscreen": true,
     "time_format_24": false,
-    "software_rotate": -90
+    "software_rotate": -90,
+    "top_offset": 0
   },
   "dimming": {
     "brightness_day": 100,
