@@ -95,10 +95,16 @@ After reboot the display should start automatically.
 - Clones the repository to `~/weather-display` (or uses the current directory if you already cloned it).
 - Creates a Python virtualenv and installs packages from `requirements.txt`.
 - Runs interactive setup (location and time format) and writes `config.json`.
-- **Bookworm (X11):** configures a **systemd user service** so the display auto-starts after you log in.
-- **Trixie (Wayland/labwc):** if labwc is present, adds a **labwc autostart** entry so the display starts with your session.
+- Sets **display resolution to 1920×480** in the Pi’s boot config (when possible) so both the desktop and the LCD use the 8.8" panel’s native resolution. The app also uses 1920×480 from `config.json`.
+- Enables **desktop autologin** (when using LightDM) so the Pi boots straight to the desktop with **no login screen and no keyboard required**.
+- Adds **XDG autostart** so the weather app starts as soon as the desktop is ready.
+- Sets **fullscreen** in config for the LCD; the app takes over the display.
 
-To run the display manually: `cd ~/weather-display && .venv/bin/python src/main.py`. Set `display.fullscreen` to `true` in `config.json` for kiosk use.
+After reboot: power on with the LCD connected and the app starts automatically—no keyboard or interaction needed.
+
+**If the app doesn’t autostart:** ensure autologin is enabled (e.g. **Raspberry Pi Configuration** → **System** → **Auto Login** → “Desktop auto login as user ‘pi’”), then reboot.
+
+To run the display manually: `cd ~/weather-display && .venv/bin/python src/main.py`.
 
 ## License
 

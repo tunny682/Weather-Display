@@ -63,7 +63,22 @@ echo ""
 echo "--- Set your location and preferences ---"
 .venv/bin/python src/main.py --setup-only
 
-# Auto-start: systemd (Bookworm/X11) and/or labwc autostart (Trixie/Wayland)
+# XDG Autostart: run when user logs into the desktop (works with autologin on Pi)
+# Supported by LXDE (Bookworm), labwc (Trixie), and most desktop environments
+AUTOSTART_DIR="${HOME}/.config/autostart"
+mkdir -p "${AUTOSTART_DIR}"
+cat > "${AUTOSTART_DIR}/weather-display.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=Weather Display
+Comment=Weather and time display for 8.8" LCD
+Exec=${INSTALL_DIR}/.venv/bin/python ${INSTALL_DIR}/src/main.py
+Path=${INSTALL_DIR}
+X-GNOME-Autostart-enabled=true
+EOF
+echo "Configured desktop autostart (runs when you log in)."
+
+# Optional: systemd user service (backup; enable linger so it can run at boot)
 SERVICE_DIR="${HOME}/.config/systemd/user"
 mkdir -p "${SERVICE_DIR}"
 cat > "${SERVICE_DIR}/weather-display.service" << EOF
@@ -82,31 +97,64 @@ RestartSec=10
 [Install]
 WantedBy=default.target
 EOF
-
-echo "Enabling auto-start (systemd user service for Bookworm/X11)..."
-systemctl --user daemon-reload
+systemctl --user daemon-reload 2>/dev/null || true
 systemctl --user enable weather-display.service 2>/dev/null || true
 
-# Trixie (Debian 13) / Raspberry Pi OS with Wayland uses labwc; add autostart so app runs in session
+# Enable linger so user session (and user services) persist at boot (helps some setups)
+if command -v loginctl &>/dev/null; then
+    loginctl enable-linger "${USER}" 2>/dev/null || true
+fi
+
+# Enable desktop autologin so the Pi boots straight to desktop with no login (no keyboard needed)
+LIGHTDM_CONF="/etc/lightdm/lightdm.conf"
+if [ -f "${LIGHTDM_CONF}" ]; then
+    if ! grep -q "^autologin-user=" "${LIGHTDM_CONF}" 2>/dev/null; then
+        echo "Enabling desktop autologin for user ${USER} (no keyboard needed at boot)..."
+        if sudo grep -q "^\[Seat:" "${LIGHTDM_CONF}" 2>/dev/null; then
+            sudo sed -i "/^\[Seat:/a autologin-user=${USER}\nautologin-user-timeout=0" "${LIGHTDM_CONF}" 2>/dev/null || true
+        fi
+    else
+        sudo sed -i "s/^autologin-user=.*/autologin-user=${USER}/" "${LIGHTDM_CONF}" 2>/dev/null || true
+        sudo sed -i "s/^#*autologin-user-timeout=.*/autologin-user-timeout=0/" "${LIGHTDM_CONF}" 2>/dev/null || true
+    fi
+else
+    echo "To boot without a login screen, enable autologin: sudo raspi-config → System Options → Boot / Auto Login → Desktop Autologin"
+fi
+
+# Force fullscreen and 1920x480 in config for LCD
+if [ -f "${INSTALL_DIR}/config.json" ]; then
+    sed -i 's/"fullscreen"\s*:\s*false/"fullscreen": true/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
+    sed -i 's/"width"\s*:\s*[0-9]*/"width": 1920/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
+    sed -i 's/"height"\s*:\s*[0-9]*/"height": 480/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
+fi
+
+# Set Pi display output to 1920x480 for the 8.8" LCD (desktop and app will use this)
+BOOT_CONF=""
+[ -f /boot/firmware/config.txt ] && BOOT_CONF="/boot/firmware/config.txt"
+[ -z "${BOOT_CONF}" ] && [ -f /boot/config.txt ] && BOOT_CONF="/boot/config.txt"
+if [ -n "${BOOT_CONF}" ]; then
+    if ! sudo grep -q "hdmi_cvt=1920 480" "${BOOT_CONF}" 2>/dev/null; then
+        echo "Setting display resolution to 1920x480 for LCD..."
+        { echo ""; echo "# Weather Display 8.8\" LCD (1920x480)"; echo "hdmi_cvt=1920 480 60 6 0 0 0"; echo "hdmi_group=2"; echo "hdmi_mode=87"; } | sudo tee -a "${BOOT_CONF}" >/dev/null
+    fi
+else
+    echo "To use the LCD at 1920x480, add to /boot/firmware/config.txt (or /boot/config.txt):"
+    echo "  hdmi_cvt=1920 480 60 6 0 0 0"
+    echo "  hdmi_group=2"
+    echo "  hdmi_mode=87"
+fi
+
+# Trixie / labwc: also add to labwc autostart if present
 LABWC_AUTOSTART="${HOME}/.config/labwc/autostart"
-if command -v labwc &>/dev/null || [ -d "${HOME}/.config/labwc" ]; then
-    echo "Configuring labwc autostart (Trixie/Wayland)..."
+if [ -d "${HOME}/.config/labwc" ]; then
     mkdir -p "${LABWC_AUTOSTART}"
-    cat > "${LABWC_AUTOSTART}/weather-display.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=Weather Display
-Exec=${INSTALL_DIR}/.venv/bin/python ${INSTALL_DIR}/src/main.py
-Path=${INSTALL_DIR}
-X-GNOME-Autostart-enabled=true
-EOF
-    chmod +x "${LABWC_AUTOSTART}/weather-display.desktop" 2>/dev/null || true
+    cp "${AUTOSTART_DIR}/weather-display.desktop" "${LABWC_AUTOSTART}/" 2>/dev/null || true
 fi
 
 echo ""
 echo "=== Installation complete ==="
 echo "  Install directory: ${INSTALL_DIR}"
+echo "  Autologin + autostart: Pi will boot to desktop and start the app with no keyboard."
 echo "  Run manually:  cd ${INSTALL_DIR} && .venv/bin/python src/main.py"
-echo "  (Bookworm) Start service: systemctl --user start weather-display"
-echo "  Reboot to start the display automatically:  sudo reboot"
+echo "  Reboot once:  sudo reboot"
 echo ""
