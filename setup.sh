@@ -107,12 +107,8 @@ EOF
 chmod +x "${LAUNCHER}"
 echo "Created launcher: ${LAUNCHER}"
 
-# Disable LXDE panel from autostart so taskbar never appears after reboot
-if [ -d "${HOME}/.config/lxsession" ] || mkdir -p "${HOME}/.config/lxsession/LXDE-pi" 2>/dev/null; then
-  if [ -f /etc/xdg/lxsession/LXDE-pi/autostart ]; then
-    grep -v '@lxpanel' /etc/xdg/lxsession/LXDE-pi/autostart > "${HOME}/.config/lxsession/LXDE-pi/autostart" 2>/dev/null && echo "Disabled LXDE panel in autostart (no taskbar)." || true
-  fi
-fi
+# Do not overwrite the user's LXDE autostart (it can break session startup and prevent the app from autostarting).
+# The launcher hides the taskbar with killall lxpanel when the app starts.
 
 # System-level systemd service: starts app when display is ready (does not depend on desktop autostart)
 SYSTEMD_SERVICE="/etc/systemd/system/weather-display.service"
