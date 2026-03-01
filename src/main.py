@@ -2,6 +2,7 @@
 Weather Display - Main entry point.
 Runs the display loop; loads config from project root.
 Prompts for location and clock format when config.json is missing.
+Use --setup-only to run config setup only (no display; for Pi install script).
 """
 import os
 import sys
@@ -9,11 +10,7 @@ import json
 import time
 import datetime
 
-import pygame
 import requests
-
-from weather import fetch_weather
-from display import draw as draw_display
 
 
 def _project_root():
@@ -105,6 +102,10 @@ def load_config():
 
 
 def main():
+    import pygame
+    from weather import fetch_weather
+    from display import draw as draw_display
+
     config = load_config()
     display_cfg = config.get("display", {})
     width = display_cfg.get("width", 1920)
@@ -167,4 +168,7 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--setup-only" in sys.argv:
+        _run_setup()
+        sys.exit(0)
     main()

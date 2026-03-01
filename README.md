@@ -55,9 +55,39 @@ No API key is needed for Open-Meteo.
 └── assets/icons/          # Optional weather icon images
 ```
 
-## Raspberry Pi
+## Raspberry Pi installation
 
-On a Pi with the 8.8" LCD connected, run the same steps: clone the repo, `pip install -r requirements.txt`, create `config.json`, then `python src/main.py`. Set `display.fullscreen` to `true` in config for kiosk use. A `setup.sh` script for one-command install may be added later.
+On a Pi (e.g. Raspberry Pi 5) with the 8.8" LCD connected:
+
+**Download the install script**
+
+```bash
+wget https://raw.githubusercontent.com/tunny682/Weather-Display/master/setup.sh
+```
+
+**Install the software:**
+
+```bash
+bash setup.sh
+```
+
+**Reboot Raspberry Pi**
+
+```bash
+sudo reboot
+```
+
+After reboot the display should start automatically.
+
+### What This Script Does
+
+- Installs required system dependencies (Python 3, pip, venv, SDL libraries for PyGame).
+- Clones the repository to `~/weather-display` (or uses the current directory if you already cloned it).
+- Creates a Python virtualenv and installs packages from `requirements.txt`.
+- Runs interactive setup (location and time format) and writes `config.json`.
+- Configures a **systemd user service** so the display auto-starts after you log in (graphical session).
+
+To run the display manually: `cd ~/weather-display && .venv/bin/python src/main.py`. Set `display.fullscreen` to `true` in `config.json` for kiosk use.
 
 ## License
 

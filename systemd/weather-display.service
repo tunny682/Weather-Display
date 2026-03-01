@@ -1,0 +1,16 @@
+# Template only. setup.sh installs the real unit to ~/.config/systemd/user/
+# with WorkingDirectory and ExecStart set to your install path (e.g. ~/weather-display).
+[Unit]
+Description=Weather Display (8.8" LCD)
+After=graphical-session.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/weather-display
+ExecStart=/home/pi/weather-display/.venv/bin/python src/main.py
+Environment=DISPLAY=:0
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
