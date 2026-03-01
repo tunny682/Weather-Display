@@ -144,8 +144,28 @@ def _draw_time_colon(surface: pygame.Surface, x: int, y: int, size: int, color: 
     pygame.draw.rect(surface, color, (*bot, w, h))
 
 
+_WHITE = (255, 255, 255)
+# White vertical lines between forecast columns (mirror reference layout)
+_SEP_COLOR = (255, 255, 255)
+
+
+def _blit_text(
+    surface: pygame.Surface,
+    font: pygame.font.Font,
+    text: str,
+    x: int,
+    y: int,
+    anchor: str = "center",
+    color: tuple = _WHITE,
+) -> None:
+    """Draw text in the given color. anchor: 'center', 'midleft', 'topleft', 'midbottom', 'midtop', etc."""
+    surf = font.render(text, True, color)
+    rect = surf.get_rect(**{anchor: (x, y)})
+    surface.blit(surf, rect)
+
+
 def draw(surface: pygame.Surface, config: dict, weather_data: Optional[dict], now: datetime.datetime) -> None:
-    """Draw full layout: black background, time/date left, weather right."""
+    """Draw full layout: black background, white text; scaled for 1920x480 with minimal dead space."""
     w = surface.get_width()
     h = surface.get_height()
     surface.fill((0, 0, 0))
@@ -153,58 +173,55 @@ def draw(surface: pygame.Surface, config: dict, weather_data: Optional[dict], no
     time_24 = config.get("display", {}).get("time_format_24", False)
     left_third = w // 3
     right_start = left_third
+    white = _WHITE
 
-    # ---- Left: Time and date ----
-    time_font = pygame.font.Font(None, 120)
-    date_font = pygame.font.Font(None, 56)
-    white = (255, 255, 255)
+    # ---- Font sizes: time dominant; date proportional to time; then current temp, H/L, forecast ----
+    time_font = pygame.font.Font(None, 180)
+    date_font = pygame.font.Font(None, 96)   # proportional to time (e.g. ~half)
+    cur_font = pygame.font.Font(None, 108)
+    hl_font = pygame.font.Font(None, 58)
+    day_font = pygame.font.Font(None, 52)
+    temp_font = pygame.font.Font(None, 48)
 
     if time_24:
         time_str = now.strftime("%H:%M")
         colon_pos = time_str.index(":")
     else:
-        time_str = now.strftime("%I:%M%p").lstrip("0")  # 2:08PM
-        if ":" in time_str:
-            colon_pos = time_str.index(":")
-        else:
-            colon_pos = -1
+        time_str = now.strftime("%I:%M%p")
+        colon_pos = time_str.index(":") if ":" in time_str else -1
 
-    # Time: render in segments so we can replace the colon with two squares
+    # ---- Left: Time and date — vertically centered in left third to fill space ----
+    y_time = h // 2 - 80
     if colon_pos >= 0:
         part1 = time_str[:colon_pos]
         part2 = time_str[colon_pos + 1:]
         s1 = time_font.render(part1, True, white)
         s2 = time_font.render(part2, True, white)
-        total_w = s1.get_width() + s2.get_width() + 20  # gap for colon
+        total_w = s1.get_width() + s2.get_width() + 24
         x_start = (left_third - total_w) // 2
-        y_time = h // 3
-        surface.blit(s1, (x_start, y_time - s1.get_height() // 2))
-        colon_x = x_start + s1.get_width() + 10
-        _draw_time_colon(surface, colon_x, y_time, 120, white)
-        surface.blit(s2, (colon_x + 12, y_time - s2.get_height() // 2))
+        _blit_text(surface, time_font, part1, x_start, y_time - s1.get_height() // 2, "topleft")
+        colon_x = x_start + s1.get_width() + 12
+        _draw_time_colon(surface, colon_x, y_time, 180, white)
+        _blit_text(surface, time_font, part2, colon_x + 16, y_time - s2.get_height() // 2, "topleft")
     else:
-        time_surf = time_font.render(time_str, True, white)
-        tr = time_surf.get_rect(centerx=left_third // 2, centery=h // 3)
-        surface.blit(time_surf, tr)
+        _blit_text(surface, time_font, time_str, left_third // 2, y_time, "center")
 
-    # e.g. "Monday, Feb 9" (Windows lacks %-d, so use day number)
+    # Date vertically aligned with time: just below it with a small gap (no large dead space)
     date_str = now.strftime("%A, %b ") + str(now.day)
-    date_surf = date_font.render(date_str, True, white)
-    date_rect = date_surf.get_rect(centerx=left_third // 2, centery=h // 3 + 70)
-    surface.blit(date_surf, date_rect)
+    time_height = time_font.get_height()
+    date_gap = 14
+    date_y = y_time + time_height // 2 + date_gap + date_font.get_height() // 2
+    _blit_text(surface, date_font, date_str, left_third // 2, date_y, "center")
 
-    # ---- Right: Current weather + 5-day forecast ----
-    cur_font = pygame.font.Font(None, 72)
-    hl_font = pygame.font.Font(None, 42)
-    day_font = pygame.font.Font(None, 36)
-    temp_font = pygame.font.Font(None, 32)
-
+    # ---- Right: 5-day forecast column layout (same col_w for alignment); current weather above, aligned with first column ----
     current = (weather_data or {}).get("current")
     forecast = (weather_data or {}).get("forecast") or []
+    strip_y = h - 200
+    strip_h = 180
+    col_w = (w - right_start - 40) // 5
+    # Center of first column (Mon) — current weather icon lines up with this
+    first_col_center = right_start + 20 + col_w // 2
 
-    # Current weather block (top right)
-    block_w = w - right_start - 40
-    cur_y = 40
     if current:
         temp = current.get("temp")
         high = current.get("high")
@@ -214,42 +231,33 @@ def draw(surface: pygame.Surface, config: dict, weather_data: Optional[dict], no
         icon_t = _icon_type(condition)
         if not is_day and icon_t == "sun":
             icon_t = "moon"
-        # Icon, then current temp, then H/L stacked
-        icon_x = right_start + 60
-        icon_y = cur_y + 50
-        _draw_icon(surface, icon_x, icon_y, icon_t, 44, white, use_2x=True, is_night=not is_day)
+        # Current weather top aligned with top of time (08:15AM)
+        icon_x = first_col_center
+        cur_y = y_time - time_font.get_height() // 2
+        icon_y = cur_y + 55
+        _draw_icon(surface, icon_x, icon_y, icon_t, 58, white, use_2x=True, is_night=not is_day)
+        temp_x = icon_x + 110
+        temp_y = cur_y + 18
         if temp is not None:
-            temp_str = f"{int(round(temp))}°"
-            ts = cur_font.render(temp_str, True, white)
-            surface.blit(ts, (right_start + 120, cur_y + 20))
+            _blit_text(surface, cur_font, f"{int(round(temp))}°", temp_x, temp_y, "topleft")
+        hl_x = icon_x + 270
         if high is not None and low is not None:
-            hl1 = hl_font.render(f"H{int(round(high))}°", True, white)
-            hl2 = hl_font.render(f"L{int(round(low))}°", True, white)
-            surface.blit(hl1, (right_start + 220, cur_y + 35))
-            surface.blit(hl2, (right_start + 220, cur_y + 35 + hl1.get_height() + 4))
+            _blit_text(surface, hl_font, f"H{int(round(high))}°", hl_x, temp_y, "topleft")
+            _blit_text(surface, hl_font, f"L{int(round(low))}°", hl_x, temp_y + hl_font.get_height() + 6, "topleft")
 
-    # 5-day forecast (bottom right, horizontal strip)
+    # ---- 5-day forecast: same column centers so current weather and Mon align ----
     num_days = min(5, len(forecast))
     if num_days > 0:
-        strip_y = h - 140
-        col_w = (w - right_start - 40) // 5
-        sep_color = (80, 80, 80)
         for i in range(num_days):
             day_data = forecast[i]
             cx = right_start + 20 + (i * col_w) + col_w // 2
-            # Day name
             day_name = day_data.get("day_name", "—")
-            day_surf = day_font.render(day_name, True, white)
-            surface.blit(day_surf, day_surf.get_rect(centerx=cx, bottom=strip_y + 25))
-            # Icon
+            _blit_text(surface, day_font, day_name, cx, strip_y + 32, "midbottom")
             cond = day_data.get("condition", "unknown")
-            _draw_icon(surface, cx, strip_y + 55, _icon_type(cond), 28, white, use_2x=False)
-            # Temp
+            _draw_icon(surface, cx, strip_y + 95, _icon_type(cond), 38, white, use_2x=False)
             t = day_data.get("temp")
             if t is not None:
-                temp_s = temp_font.render(f"{int(round(t))}°", True, white)
-                surface.blit(temp_s, temp_s.get_rect(centerx=cx, top=strip_y + 85))
-            # Vertical separator to the right (except last)
+                _blit_text(surface, temp_font, f"{int(round(t))}°", cx, strip_y + 145, "midtop")
             if i < num_days - 1:
                 sx = right_start + 20 + (i + 1) * col_w
-                pygame.draw.line(surface, sep_color, (sx, strip_y), (sx, strip_y + 120), 1)
+                pygame.draw.line(surface, _SEP_COLOR, (sx, strip_y), (sx, strip_y + strip_h), 1)
