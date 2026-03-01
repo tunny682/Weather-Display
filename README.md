@@ -100,7 +100,7 @@ After reboot the display should start automatically.
 - Enables **desktop autologin** (when using LightDM) so the Pi boots straight to the desktop with **no login screen and no keyboard required**.
 - Adds **XDG autostart** so the weather app starts as soon as the desktop is ready.
 - App launches in a **window** by default; set `"fullscreen": true` in `config.json` if you want it to take over the LCD.
-- **rotate_display.sh** (from the same approach as [Canterrain/weather-display](https://github.com/Canterrain/weather-display)): retries for up to 60s until X11 or Wayland is ready, then sets **landscape** (`xrandr --output <output> --rotate normal` or `wlr-randr --transform normal`). A systemd user service runs this at session start; the launcher also runs it in the background when the app starts.
+- **rotate_display.sh** rotates the **entire desktop** (all connected outputs) to landscape so the Pi desktop and the app both appear correct. It retries for up to 60s until X11 or Wayland is ready, then runs `xrandr --output <each> --rotate normal` (X11) or `wlr-randr --transform normal` (Wayland). A systemd user service runs it at session start; the launcher also runs it when the app starts. The boot config (`display_rotate=0`) is set by setup for the framebuffer; this script rotates the desktop session on top of that.
 
 After reboot: power on with the LCD connected and the app starts automatically—no keyboard or interaction needed.
 
