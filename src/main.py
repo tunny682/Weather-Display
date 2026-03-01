@@ -127,9 +127,9 @@ def main():
 
     try:
         if fullscreen:
-            screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
+            screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN | pygame.NOFRAME)
         else:
-            screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+            screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.NOFRAME)
     except pygame.error as e:
         print(f"Cannot set display mode {width}x{height}: {e}")
         pygame.quit()
