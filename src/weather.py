@@ -73,7 +73,7 @@ def _fetch_open_meteo(base: str, lat: float, lon: float, cfg: dict) -> Optional[
     url = (
         f"{base}"
         f"?latitude={lat}&longitude={lon}"
-        "&current=temperature_2m,weather_code"
+        "&current=temperature_2m,weather_code,is_day"
         "&daily=weather_code,temperature_2m_max,temperature_2m_min"
         f"&timezone={tz}"
         f"&temperature_unit={temp_unit}"
@@ -121,6 +121,7 @@ def _fetch_open_meteo(base: str, lat: float, lon: float, cfg: dict) -> Optional[
             "temp": temp,
         })
 
+    is_day = current.get("is_day", 1)
     return {
         "current": {
             "temp": temp_now,
@@ -128,6 +129,7 @@ def _fetch_open_meteo(base: str, lat: float, lon: float, cfg: dict) -> Optional[
             "condition": _condition_from_code(code_now),
             "high": high,
             "low": low,
+            "is_day": is_day,
         },
         "forecast": forecast,
     }
