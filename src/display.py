@@ -14,12 +14,14 @@ _ICONS_DIR = os.path.join(_PROJECT_ROOT, "assets", "icons")
 _icon_cache: dict[str, pygame.Surface] = {}
 
 
-# Condition name -> simple icon type for drawing
+# Condition name -> icon type (matches assets/icons filenames: partlycloudy, mostlycloudy, hazy, etc.)
 def _icon_type(condition: str) -> str:
     if condition in ("clear", "mainly_clear"):
         return "sun"
-    if condition in ("partly_cloudy", "overcast", "cloudy"):
-        return "cloud"
+    if condition == "partly_cloudy":
+        return "partlycloudy"
+    if condition in ("overcast", "cloudy"):
+        return "mostlycloudy"
     if "rain" in condition or "drizzle" in condition:
         return "rain"
     if "snow" in condition:
@@ -27,8 +29,8 @@ def _icon_type(condition: str) -> str:
     if "thunderstorm" in condition:
         return "storm"
     if "fog" in condition:
-        return "fog"
-    return "cloud"
+        return "hazy"
+    return "mostlycloudy"
 
 
 # Optional alternate filenames (e.g. sunny.png for sun). 2x = larger current-weather icon.
@@ -39,19 +41,29 @@ _ICON_ALIASES: dict[str, list[str]] = {
 }
 
 
-def _load_icon(icon_type: str, use_2x: bool = False) -> Optional[pygame.Surface]:
-    """Load icon PNG from assets/icons. use_2x=True tries {icon_type}_2x.png (e.g. sunny_2x.png) for large icons."""
-    cache_key = f"{icon_type}_2x" if use_2x else icon_type
+def _load_icon(icon_type: str, use_2x: bool = False, is_night: bool = False) -> Optional[pygame.Surface]:
+    """Load icon PNG from assets/icons. use_2x=True for large; is_night=True tries *n.png or *n2x.png (n before 2x)."""
+    cache_key = f"{icon_type}_2x_night" if (use_2x and is_night) else (f"{icon_type}_2x" if use_2x else icon_type)
     if cache_key in _icon_cache:
         return _icon_cache[cache_key]
-    if use_2x:
+    if use_2x and is_night:
+        # Night 2x: n before 2x (e.g. mostlycloudyn2x.png) or n after 2x (e.g. mostlycloudy2xn.png)
+        names = [
+            f"{icon_type}n2x.png", f"{icon_type}_n2x.png", f"{icon_type}n_2x.png",
+            f"{icon_type}2xn.png", f"{icon_type}_2xn.png",
+        ] + [f"{alt}n2x.png" for alt in _ICON_ALIASES.get(icon_type, []) if alt != icon_type]
+        names += [f"{alt}2xn.png" for alt in _ICON_ALIASES.get(icon_type, []) if alt != icon_type]
+    elif use_2x:
         names = [f"{icon_type}_2x.png", f"{icon_type}2x.png"] + [
             f"{alt}_2x.png" for alt in _ICON_ALIASES.get(icon_type, []) if alt != icon_type
         ] + [f"{alt}2x.png" for alt in _ICON_ALIASES.get(icon_type, []) if alt != icon_type]
     else:
-        names = [f"{icon_type}.png"] + [
-            f"{alt}.png" for alt in _ICON_ALIASES.get(icon_type, []) if alt != icon_type
-        ]
+        if is_night:
+            names = [f"{icon_type}n.png", f"{icon_type}_n.png", f"{icon_type}.png"]
+        else:
+            names = [f"{icon_type}.png"] + [
+                f"{alt}.png" for alt in _ICON_ALIASES.get(icon_type, []) if alt != icon_type
+            ]
     for name in names:
         path = os.path.join(_ICONS_DIR, name)
         if os.path.isfile(path):
@@ -63,9 +75,14 @@ def _load_icon(icon_type: str, use_2x: bool = False) -> Optional[pygame.Surface]
                 return img
             except (pygame.error, OSError):
                 pass
-    # If 2x requested but not found, fall back to non-2x icon (will be scaled up)
+    # If 2x night not found, try day 2x; if 2x not found, try non-2x (scaled up)
+    if use_2x and is_night:
+        img = _load_icon(icon_type, use_2x=True, is_night=False)
+        if img is not None:
+            _icon_cache[cache_key] = img
+        return _icon_cache.get(cache_key)
     if use_2x:
-        img = _load_icon(icon_type, use_2x=False)
+        img = _load_icon(icon_type, use_2x=False, is_night=is_night)
         if img is not None:
             _icon_cache[cache_key] = img
         return _icon_cache.get(cache_key)
@@ -74,10 +91,17 @@ def _load_icon(icon_type: str, use_2x: bool = False) -> Optional[pygame.Surface]
 
 
 def _draw_icon(
-    surface: pygame.Surface, x: int, y: int, icon_type: str, size: int, color: tuple, use_2x: bool = False
+    surface: pygame.Surface,
+    x: int,
+    y: int,
+    icon_type: str,
+    size: int,
+    color: tuple,
+    use_2x: bool = False,
+    is_night: bool = False,
 ) -> None:
-    """Draw icon at (x,y) center. use_2x=True uses *_2x.png for large current-weather icon."""
-    img = _load_icon(icon_type, use_2x=use_2x)
+    """Draw icon at (x,y) center. use_2x=True uses *_2x.png; is_night=True tries *n.png / *2xn.png."""
+    img = _load_icon(icon_type, use_2x=use_2x, is_night=is_night)
     if img is not None:
         # Scale so the icon fits in a 2*size box and center at (x, y)
         iw, ih = img.get_width(), img.get_height()
@@ -93,7 +117,7 @@ def _draw_icon(
         pygame.draw.circle(surface, (255, 220, 0), (x, y), size)
     elif icon_type == "moon":
         pygame.draw.circle(surface, (220, 220, 230), (x, y), size)
-    elif icon_type == "cloud":
+    elif icon_type in ("partlycloudy", "mostlycloudy", "cloud"):
         r = size
         pygame.draw.circle(surface, color, (x - r // 2, y), r // 2)
         pygame.draw.circle(surface, color, (x, y - r // 4), r // 2)
@@ -192,7 +216,7 @@ def draw(surface: pygame.Surface, config: dict, weather_data: Optional[dict], no
         # Icon, then current temp, then H/L stacked
         icon_x = right_start + 60
         icon_y = cur_y + 50
-        _draw_icon(surface, icon_x, icon_y, icon_t, 44, white, use_2x=True)
+        _draw_icon(surface, icon_x, icon_y, icon_t, 44, white, use_2x=True, is_night=not is_day)
         if temp is not None:
             temp_str = f"{int(round(temp))}°"
             ts = cur_font.render(temp_str, True, white)
