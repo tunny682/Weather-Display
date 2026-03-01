@@ -1,12 +1,13 @@
 #!/bin/bash
 # Weather Display - Raspberry Pi install script
 #
-# On the Pi, run:
-#   wget https://raw.githubusercontent.com/tunny682/Weather-Display/master/setup.sh
-#   bash setup.sh
-#   sudo reboot
+# On the Pi, run one of:
+#   git clone https://github.com/tunny682/Weather-Display.git && cd Weather-Display && bash setup.sh
+#   (recommended; avoids 404 if the raw file URL fails)
 #
-# Or if you already cloned the repo:  cd weather-display && bash setup.sh
+# Or:  wget .../setup.sh && bash setup.sh  (use your repo's raw URL; branch may be main or master)
+#
+# Then:  sudo reboot
 
 set -e
 REPO_URL="https://github.com/tunny682/Weather-Display.git"

@@ -57,17 +57,27 @@ No API key is needed for Open-Meteo.
 
 ## Raspberry Pi installation
 
-Works on **Raspberry Pi OS Bookworm** (Debian 12, X11) and **Trixie** (Debian 13, Wayland/labwc). On a Pi (e.g. Raspberry Pi 5) with the 8.8" LCD connected:
+Works on **Raspberry Pi OS Bookworm** (Debian 12, X11) and **Trixie** (Debian 13, Wayland/labwc). On a Pi (e.g. Raspberry Pi 5) with the 8.8" LCD connected, use one of these methods. Replace the repo URL with your own if you forked or use a different repo.
 
-**Download the install script**
+**Method 1 — Clone repo, then run setup (recommended; avoids 404 from raw URL)**
+
+```bash
+git clone https://github.com/tunny682/Weather-Display.git
+cd Weather-Display
+bash setup.sh
+```
+
+**Method 2 — Download script with wget, then run**
 
 ```bash
 wget https://raw.githubusercontent.com/tunny682/Weather-Display/master/setup.sh
+bash setup.sh
 ```
 
-**Install the software:**
+If you get a **404** with `wget`, the repo may use branch `main` or the URL may differ. Use Method 1 instead, or try:
 
 ```bash
+wget https://raw.githubusercontent.com/tunny682/Weather-Display/main/setup.sh
 bash setup.sh
 ```
 
