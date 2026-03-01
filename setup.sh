@@ -63,8 +63,44 @@ echo ""
 echo "--- Set your location and preferences ---"
 .venv/bin/python src/main.py --setup-only
 
-# XDG Autostart: run when user logs into the desktop (works with autologin on Pi)
-# Supported by LXDE (Bookworm), labwc (Trixie), and most desktop environments
+# Launcher script: ensures DISPLAY is set and runs the app (used by autostart and systemd)
+LAUNCHER="${INSTALL_DIR}/start-weather-display.sh"
+cat > "${LAUNCHER}" << EOF
+#!/bin/sh
+export DISPLAY=:0
+cd "${INSTALL_DIR}"
+exec .venv/bin/python src/main.py
+EOF
+chmod +x "${LAUNCHER}"
+echo "Created launcher: ${LAUNCHER}"
+
+# System-level systemd service: starts app when display is ready (does not depend on desktop autostart)
+SYSTEMD_SERVICE="/etc/systemd/system/weather-display.service"
+echo "Installing system service for autostart at boot..."
+sudo tee "${SYSTEMD_SERVICE}" >/dev/null << EOF
+[Unit]
+Description=Weather Display (8.8" LCD)
+After=graphical.target
+
+[Service]
+Type=simple
+User=${USER}
+WorkingDirectory=${INSTALL_DIR}
+ExecStartPre=/bin/sleep 5
+ExecStart=${LAUNCHER}
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/${USER}/.Xauthority
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable weather-display.service
+echo "Enabled weather-display.service (starts at boot when display is ready)."
+
+# XDG Autostart: backup when user has a desktop session (use launcher so DISPLAY is set)
 AUTOSTART_DIR="${HOME}/.config/autostart"
 mkdir -p "${AUTOSTART_DIR}"
 cat > "${AUTOSTART_DIR}/weather-display.desktop" << EOF
@@ -72,13 +108,13 @@ cat > "${AUTOSTART_DIR}/weather-display.desktop" << EOF
 Type=Application
 Name=Weather Display
 Comment=Weather and time display for 8.8" LCD
-Exec=${INSTALL_DIR}/.venv/bin/python ${INSTALL_DIR}/src/main.py
+Exec=${LAUNCHER}
 Path=${INSTALL_DIR}
 X-GNOME-Autostart-enabled=true
 EOF
-echo "Configured desktop autostart (runs when you log in)."
+echo "Configured desktop autostart (backup)."
 
-# Optional: systemd user service (backup; enable linger so it can run at boot)
+# User systemd service (backup)
 SERVICE_DIR="${HOME}/.config/systemd/user"
 mkdir -p "${SERVICE_DIR}"
 cat > "${SERVICE_DIR}/weather-display.service" << EOF
@@ -89,7 +125,7 @@ After=graphical-session.target
 [Service]
 Type=simple
 WorkingDirectory=${INSTALL_DIR}
-ExecStart=${INSTALL_DIR}/.venv/bin/python src/main.py
+ExecStart=${LAUNCHER}
 Environment=DISPLAY=:0
 Restart=on-failure
 RestartSec=10
