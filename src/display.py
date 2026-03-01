@@ -38,6 +38,7 @@ def _icon_type(condition: str) -> str:
 _ICON_ALIASES: dict[str, list[str]] = {
     "sun": ["sun", "sunny"],
     "moon": ["moon", "sun_night", "night"],
+    "mostlycloudy": ["mostlycloudy", "cloudy"],
 }
 
 

@@ -2,26 +2,20 @@
 
 ## Weather icons
 
-Place **PNG** weather icons in this folder:
+Place **PNG** weather icons in `assets/icons/`. The app matches conditions to icon types and tries the filenames below (and `*2x.png` / `*_2x.png` for large).
 
-```
-assets/
-  icons/
-    sun.png / sunny.png          ← clear, mainly_clear (small: forecast strip)
-    sun_2x.png / sunny_2x.png   ← same, large (current weather, daytime)
-    moon.png / sun_night.png / night.png   ← clear at night (small)
-    moon_2x.png / sun_night_2x.png / night_2x.png   ← clear at night (large, current weather)
-    cloud.png / cloud_2x.png
-    rain.png / rain_2x.png
-    snow.png / snow_2x.png
-    storm.png / storm_2x.png
-    fog.png / fog_2x.png
-```
+| Condition        | Icon type       | Filenames (small / large 2x) |
+|------------------|-----------------|------------------------------|
+| Clear, mainly clear | sun         | sun.png, sunny.png / sun_2x.png, sunny_2x.png, sunny2x.png |
+| Clear at night  | moon            | moon.png, sun_night.png, night.png / moon_2x.png, etc. |
+| Partly cloudy   | partlycloudy    | partlycloudy.png / partlycloudy2x.png |
+| Overcast, cloudy| mostlycloudy, cloudy | mostlycloudy.png, cloudy.png / mostlycloudy2x.png, cloudy2x.png |
+| Rain, drizzle   | rain            | rain.png / rain2x.png |
+| Snow            | snow            | snow.png / snow_2x.png, snow2x.png |
+| Thunderstorm    | storm           | storm.png / storm2x.png |
+| Fog             | hazy            | hazy.png / hazy2x.png |
 
-- **Small icons** (no `_2x`): used in the 5-day forecast strip.  
-- **Large icons** (`_2x` in filename): used for current weather. If a `_2x` file is missing, the app uses the small icon and scales it up.
-- **Night**: for clear sky at night the app shows a moon icon. Other conditions (e.g. mostly cloudy, hazy) can have night variants. **Put `n` before `2x`** for large night icons: e.g. **`mostlycloudyn2x.png`**, **`hazyn2x.png`**. Small night: **`*n.png`** (e.g. `mostlycloudyn.png`). Clear night: **`moon.png`** / **`moon_2x.png`** or **`sun_night.png`** / **`sun_night_2x.png`**. Only the current-weather icon switches to night; the forecast strip uses day icons.
-- Use **transparent background**. Suggested: small ~64–110 px, large (2x) ~128–220 px; the app scales as needed.
-- File names must match exactly (lowercase) or the app falls back to drawn shapes.
-
-If a file is missing, the app draws a simple shape instead. You can add icons gradually.
+- **Small** (no 2x): 5-day forecast strip. **Large** (`2x` or `_2x` in name): current weather. If a 2x file is missing, the app scales up the small icon.
+- **Night**: clear → moon; other conditions can use **`*n.png`** (small) and **`*n2x.png`** or **`*2xn.png`** (large), e.g. mostlycloudyn.png, mostlycloudyn2x.png, mostlycloudy2xn.png, hazyn2x.png.
+- **Transparent background**. Suggested size: small ~64–110 px, large ~128–220 px.
+- Names must match (lowercase). Missing file → app draws a simple shape.
