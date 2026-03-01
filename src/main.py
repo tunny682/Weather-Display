@@ -15,9 +15,13 @@ from display import draw as draw_display
 
 
 def load_config():
-    """Load config.json from project root (parent of src/)."""
+    """Load config.json from project root (parent of src/). Falls back to config.json.example."""
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path = os.path.join(project_root, "config.json")
+    example_path = os.path.join(project_root, "config.json.example")
+    if not os.path.isfile(config_path) and os.path.isfile(example_path):
+        config_path = example_path
+        print("Using config.json.example (copy to config.json to customize.)")
     if not os.path.isfile(config_path):
         print("config.json not found. Copy config.json.example to config.json and edit it.")
         sys.exit(1)
@@ -25,10 +29,10 @@ def load_config():
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
-        print(f"Invalid JSON in config.json: {e}")
+        print(f"Invalid JSON in {os.path.basename(config_path)}: {e}")
         sys.exit(1)
     except OSError as e:
-        print(f"Cannot read config.json: {e}")
+        print(f"Cannot read config: {e}")
         sys.exit(1)
 
 
