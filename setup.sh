@@ -91,14 +91,15 @@ ROTEOF
   systemctl --user enable rotate-display.service 2>/dev/null || true
 fi
 
-# Launcher: hide taskbar, rotate display, then start the app (no taskbar visible; use fullscreen in config)
+# Launcher: hide taskbar (and keep it hidden), rotate display, then start the app
 LAUNCHER="${INSTALL_DIR}/start-weather-display.sh"
 cat > "${LAUNCHER}" << EOF
 #!/bin/sh
 export DISPLAY=:0
 export XAUTHORITY="\${XAUTHORITY:-\$HOME/.Xauthority}"
-# Hide Pi taskbar so only the weather app is visible (display has no input)
+# Hide Pi taskbar; keep killing it in case the session restarts it after our app loads
 killall lxpanel 2>/dev/null || true
+( while true; do sleep 5; killall lxpanel 2>/dev/null || true; done ) &
 # Rotate to landscape in background if script exists
 [ -x "${INSTALL_DIR}/rotate_display.sh" ] && "${INSTALL_DIR}/rotate_display.sh" >/dev/null 2>&1 &
 cd "${INSTALL_DIR}"
