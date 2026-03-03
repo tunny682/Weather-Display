@@ -97,9 +97,10 @@ cat > "${LAUNCHER}" << EOF
 #!/bin/sh
 export DISPLAY=:0
 export XAUTHORITY="\${XAUTHORITY:-\$HOME/.Xauthority}"
-# Hide Pi taskbar; keep killing it in case the session restarts it after our app loads
+# Hide Pi taskbar; kill all lxpanel variants and keep killing in case session restarts it
 killall lxpanel 2>/dev/null || true
-( while true; do sleep 2; killall lxpanel 2>/dev/null || true; done ) &
+pkill -f lxpanel 2>/dev/null || true
+( while true; do sleep 1; killall lxpanel 2>/dev/null; pkill -f lxpanel 2>/dev/null; done ) &
 # Rotate to landscape in background if script exists
 [ -x "${INSTALL_DIR}/rotate_display.sh" ] && "${INSTALL_DIR}/rotate_display.sh" >/dev/null 2>&1 &
 cd "${INSTALL_DIR}"
@@ -108,7 +109,7 @@ EOF
 chmod +x "${LAUNCHER}"
 echo "Created launcher: ${LAUNCHER}"
 
-# Disable LXDE taskbar (lxpanel): ensure user autostart exists (copy from global if missing), then disable lxpanel
+# Disable LXDE taskbar (lxpanel) for display-only/kiosk use: ensure user autostart exists (copy from global if missing), then disable lxpanel
 LXDE_USER_DIR="${HOME}/.config/lxsession/LXDE-pi"
 LXDE_AUTOSTART="${LXDE_USER_DIR}/autostart"
 GLOBAL_PI="/etc/xdg/lxsession/LXDE-pi/autostart"
@@ -125,9 +126,16 @@ if [ ! -f "${LXDE_AUTOSTART}" ]; then
   fi
 fi
 if [ -f "${LXDE_AUTOSTART}" ] && grep -q 'lxpanel' "${LXDE_AUTOSTART}" 2>/dev/null; then
-  echo "Disabling lxpanel (taskbar) in LXDE autostart..."
+  echo "Disabling lxpanel (taskbar) in user LXDE autostart..."
   sed -i.bak 's/^@lxpanel/#@lxpanel/; s/^lxpanel/#lxpanel/; s/^[[:space:]]*@lxpanel/#@lxpanel/; s/^[[:space:]]*lxpanel/#lxpanel/' "${LXDE_AUTOSTART}" 2>/dev/null || true
 fi
+# Also disable lxpanel in global autostart (so panel never starts even if session uses system config)
+for GLOBAL in "${GLOBAL_PI}" "${GLOBAL_LXDE}"; do
+  if [ -f "${GLOBAL}" ] && grep -q 'lxpanel' "${GLOBAL}" 2>/dev/null; then
+    echo "Disabling lxpanel in global autostart: ${GLOBAL}"
+    sudo sed -i.bak 's/^@lxpanel/#@lxpanel/; s/^lxpanel/#lxpanel/; s/^[[:space:]]*@lxpanel/#@lxpanel/; s/^[[:space:]]*lxpanel/#lxpanel/' "${GLOBAL}" 2>/dev/null || true
+  fi
+done
 
 # Use only the system service to start the app (avoid two instances from service + XDG autostart)
 AUTOSTART_DIR="${HOME}/.config/autostart"
