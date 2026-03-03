@@ -99,7 +99,7 @@ export DISPLAY=:0
 export XAUTHORITY="\${XAUTHORITY:-\$HOME/.Xauthority}"
 # Hide Pi taskbar; keep killing it in case the session restarts it after our app loads
 killall lxpanel 2>/dev/null || true
-( while true; do sleep 5; killall lxpanel 2>/dev/null || true; done ) &
+( while true; do sleep 2; killall lxpanel 2>/dev/null || true; done ) &
 # Rotate to landscape in background if script exists
 [ -x "${INSTALL_DIR}/rotate_display.sh" ] && "${INSTALL_DIR}/rotate_display.sh" >/dev/null 2>&1 &
 cd "${INSTALL_DIR}"
@@ -108,8 +108,26 @@ EOF
 chmod +x "${LAUNCHER}"
 echo "Created launcher: ${LAUNCHER}"
 
-# Do not overwrite the user's LXDE autostart (it can break session startup and prevent the app from autostarting).
-# The launcher hides the taskbar with killall lxpanel when the app starts.
+# Disable LXDE taskbar (lxpanel) so it never starts; launcher still kills it as a safety net
+LXDE_AUTOSTART="${HOME}/.config/lxsession/LXDE-pi/autostart"
+if [ -f "${LXDE_AUTOSTART}" ]; then
+  if grep -q 'lxpanel' "${LXDE_AUTOSTART}" 2>/dev/null; then
+    echo "Disabling lxpanel (taskbar) in LXDE autostart..."
+    sed -i.bak 's/^@lxpanel/#@lxpanel/; s/^lxpanel/#lxpanel/' "${LXDE_AUTOSTART}" 2>/dev/null || true
+  fi
+fi
+
+# Use only the system service to start the app (avoid two instances from service + XDG autostart)
+AUTOSTART_DIR="${HOME}/.config/autostart"
+mkdir -p "${AUTOSTART_DIR}"
+rm -f "${AUTOSTART_DIR}/weather-display.desktop"
+SERVICE_DIR="${HOME}/.config/systemd/user"
+mkdir -p "${SERVICE_DIR}"
+if [ -f "${SERVICE_DIR}/weather-display.service" ]; then
+  systemctl --user disable weather-display.service 2>/dev/null || true
+  rm -f "${SERVICE_DIR}/weather-display.service"
+  systemctl --user daemon-reload 2>/dev/null || true
+fi
 
 # System-level systemd service: starts app when display is ready (does not depend on desktop autostart)
 SYSTEMD_SERVICE="/etc/systemd/system/weather-display.service"
@@ -137,46 +155,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable weather-display.service
 echo "Enabled weather-display.service (starts at boot when display is ready)."
 
-# XDG Autostart: backup when user has a desktop session (use launcher so DISPLAY is set)
-AUTOSTART_DIR="${HOME}/.config/autostart"
-mkdir -p "${AUTOSTART_DIR}"
-cat > "${AUTOSTART_DIR}/weather-display.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=Weather Display
-Comment=Weather and time display for 8.8" LCD
-Exec=${LAUNCHER}
-Path=${INSTALL_DIR}
-X-GNOME-Autostart-enabled=true
-EOF
-echo "Configured desktop autostart (backup)."
-
-# User systemd service (backup)
-SERVICE_DIR="${HOME}/.config/systemd/user"
-mkdir -p "${SERVICE_DIR}"
-cat > "${SERVICE_DIR}/weather-display.service" << EOF
-[Unit]
-Description=Weather Display (8.8" LCD)
-After=graphical-session.target
-
-[Service]
-Type=simple
-WorkingDirectory=${INSTALL_DIR}
-ExecStart=${LAUNCHER}
-Environment=DISPLAY=:0
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=default.target
-EOF
-systemctl --user daemon-reload 2>/dev/null || true
-systemctl --user enable weather-display.service 2>/dev/null || true
-
-# Enable linger so user session (and user services) persist at boot (helps some setups)
-if command -v loginctl &>/dev/null; then
-    loginctl enable-linger "${USER}" 2>/dev/null || true
-fi
+# Single autostart via system service only (XDG/user service removed to prevent two app instances)
+echo "Autostart: system service only (one instance)."
 
 # Enable desktop autologin so the Pi boots straight to desktop with no login (no keyboard needed)
 LIGHTDM_CONF="/etc/lightdm/lightdm.conf"
