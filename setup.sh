@@ -108,13 +108,25 @@ EOF
 chmod +x "${LAUNCHER}"
 echo "Created launcher: ${LAUNCHER}"
 
-# Disable LXDE taskbar (lxpanel) so it never starts; launcher still kills it as a safety net
-LXDE_AUTOSTART="${HOME}/.config/lxsession/LXDE-pi/autostart"
-if [ -f "${LXDE_AUTOSTART}" ]; then
-  if grep -q 'lxpanel' "${LXDE_AUTOSTART}" 2>/dev/null; then
-    echo "Disabling lxpanel (taskbar) in LXDE autostart..."
-    sed -i.bak 's/^@lxpanel/#@lxpanel/; s/^lxpanel/#lxpanel/' "${LXDE_AUTOSTART}" 2>/dev/null || true
+# Disable LXDE taskbar (lxpanel): ensure user autostart exists (copy from global if missing), then disable lxpanel
+LXDE_USER_DIR="${HOME}/.config/lxsession/LXDE-pi"
+LXDE_AUTOSTART="${LXDE_USER_DIR}/autostart"
+GLOBAL_PI="/etc/xdg/lxsession/LXDE-pi/autostart"
+GLOBAL_LXDE="/etc/xdg/lxsession/LXDE/autostart"
+if [ ! -f "${LXDE_AUTOSTART}" ]; then
+  echo "Creating user LXDE autostart (so we can disable the taskbar)..."
+  mkdir -p "${LXDE_USER_DIR}"
+  if [ -f "${GLOBAL_PI}" ]; then
+    cp "${GLOBAL_PI}" "${LXDE_AUTOSTART}"
+  elif [ -f "${GLOBAL_LXDE}" ]; then
+    cp "${GLOBAL_LXDE}" "${LXDE_AUTOSTART}"
+  else
+    echo "No global LXDE autostart found; launcher will hide taskbar with killall lxpanel."
   fi
+fi
+if [ -f "${LXDE_AUTOSTART}" ] && grep -q 'lxpanel' "${LXDE_AUTOSTART}" 2>/dev/null; then
+  echo "Disabling lxpanel (taskbar) in LXDE autostart..."
+  sed -i.bak 's/^@lxpanel/#@lxpanel/; s/^lxpanel/#lxpanel/; s/^[[:space:]]*@lxpanel/#@lxpanel/; s/^[[:space:]]*lxpanel/#lxpanel/' "${LXDE_AUTOSTART}" 2>/dev/null || true
 fi
 
 # Use only the system service to start the app (avoid two instances from service + XDG autostart)
