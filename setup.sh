@@ -206,9 +206,9 @@ else
     echo "To boot without a login screen, enable autologin: sudo raspi-config → System Options → Boot / Auto Login → Desktop Autologin"
 fi
 
-# Set 1920x480 in config; do not force fullscreen (user can set true in config.json if desired)
+# Set 1920x480 fullscreen in config for kiosk/display-only use
 if [ -f "${INSTALL_DIR}/config.json" ]; then
-    sed -i 's/"fullscreen"\s*:\s*true/"fullscreen": false/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
+    sed -i 's/"fullscreen"\s*:\s*false/"fullscreen": true/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
     sed -i 's/"width"\s*:\s*[0-9]*/"width": 1920/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
     sed -i 's/"height"\s*:\s*[0-9]*/"height": 480/' "${INSTALL_DIR}/config.json" 2>/dev/null || true
 fi
