@@ -125,9 +125,16 @@ def main():
         print(f"Pygame init failed: {e}")
         sys.exit(1)
 
+    # Fullscreen: use always-on-top so window stays above taskbar (like Electron kiosk)
+    fullscreen_flags = pygame.FULLSCREEN | pygame.NOFRAME
+    if fullscreen and sys.platform != "win32":
+        try:
+            fullscreen_flags |= pygame.WINDOW_ALWAYS_ON_TOP
+        except AttributeError:
+            fullscreen_flags |= 0x00010000  # SDL_WINDOW_ALWAYS_ON_TOP
     try:
         if fullscreen:
-            screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN | pygame.NOFRAME)
+            screen = pygame.display.set_mode((width, height), fullscreen_flags)
         else:
             screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.NOFRAME)
     except pygame.error as e:
